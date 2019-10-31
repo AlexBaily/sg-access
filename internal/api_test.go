@@ -30,13 +30,13 @@ func TestIPCompare(t *testing.T) {
 	compTrue := CompareIntIP(ip1, n)
 	if compTrue != true {
 		t.Errorf("CompareIntIP(\"192.168.0.2\", n) = %v; want true",
-			ip1)
+			compTrue)
 	}
 	ip2 := GetIntFromIP("172.16.0.2")
 	compFalse := CompareIntIP(ip2, n)
 	if compFalse != false {
 		t.Errorf("CompareIntIP(\"192.168.0.2\", n) = %v; want false",
-			ip1)
+			compFalse)
 	}
 
 }
