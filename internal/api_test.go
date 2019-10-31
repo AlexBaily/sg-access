@@ -18,3 +18,25 @@ func TestIntIPCalc(t *testing.T) {
 			ip2)
 	}
 }
+
+/*
+TestIPCompare will test comparing a NetRange object to an IP address
+They should test true if the subnet is in the NetRange subnet and false
+if it is not.
+*/
+func TestIPCompare(t *testing.T) {
+	ip1 := GetIntFromIP("192.168.0.2")
+	n := NetRange{"192.168.0.0", "16", 3232235520}
+	compTrue := CompareIntIP(ip1, n)
+	if compTrue != true {
+		t.Errorf("CompareIntIP(\"192.168.0.2\", n) = %v; want true",
+			ip1)
+	}
+	ip2 := GetIntFromIP("172.16.0.2")
+	compFalse := CompareIntIP(ip2, n)
+	if compFalse != false {
+		t.Errorf("CompareIntIP(\"192.168.0.2\", n) = %v; want false",
+			ip1)
+	}
+
+}
