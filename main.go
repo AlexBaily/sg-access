@@ -1,7 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sg-access/internal"
+)
 
-func main(){
-	fmt.Printf("test")
+func main() {
+	awsGroups := internal.GetSecurityGroups()
+	fmt.Printf("%v", awsGroups)
 }

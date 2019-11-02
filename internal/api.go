@@ -18,7 +18,7 @@ type SecurityGroup struct {
 //Should save some address space?
 type SecurityGroupRule struct {
 	ports    string
-	networks []*NetRange
+	networks []NetRange
 }
 
 //NetRange is a struct that contains information about a network
@@ -50,19 +50,3 @@ func CompareIntIP(ipAddr int64, subnet NetRange) bool {
 	//Compare the normalised values to see if they match
 	return (uint64(ipAddr) >> uint32(32-mask)) == (uint64(subnet.networkRange) >> uint32((32 - mask)))
 }
-
-/*
-func main() {
-
-	subnet := strings.Split("192.0.0.0/16", "/")
-	subnetInt := GetIntFromIP(subnet[0])
-	n := NetRange{subnet[0], subnet[1], subnetInt}
-
-	ipToTest := "192.14.0.1"
-	ipInt := GetIntFromIP(ipToTest)
-
-	sameIP := CompareIntIP(ipInt, n)
-
-	fmt.Println("%v", sameIP)
-}
-}*/
