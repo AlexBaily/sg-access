@@ -3,6 +3,8 @@ package internal
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -26,24 +28,63 @@ func init() {
 		Region: aws.String(region)}))
 }
 
-//QueryIPPermissions
-func QueryIPPermissions(perm []*ec2.IpPermission) (ipPermission []NetRange) {
+func ParseRange(ec2IpRangeArray []*ec2.IpRange) (ipRangeArray []NetRange) {
+	//Loop through each *ec2.IpRange object to build a NetRange array.
+	for _, ipRange := range ec2IpRangeArray {
+		cidrIp := strings.Split(*ipRange.CidrIp, "/")
+		//Check and load into our "cache"
+		var intIp int64
+		if val, ok := NetCache[cidrIp[0]]; ok {
+			intIp = val
+		} else {
+			intIp = GetIntFromIP(cidrIp[0])
+			NetCache[cidrIp[0]] = intIp
+		}
+		//Create a new range object which is a subnet and
+		//it's IP addresses corresponding IP in integer form.
+		nRange := NetRange{cidrIp[0], cidrIp[1], intIp}
+		ipRangeArray = append(ipRangeArray, nRange)
+	}
+	return ipRangeArray
+}
+
+//ParseIPPermissions
+func ParseIPPermissions(perm []*ec2.IpPermission) (ipPermission []SecurityGroupRule) {
+	//Loop through every permission and build a SecurityGroupRule for it.
+	for _, permission := range perm {
+		//Loop through all of the IpRanges and build the IPRange list for the
+		//SecurityGroupRule type.
+		ipRangeArray := ParseRange(permission.IpRanges)
+		var portRange string
+		//Get the port range, create the sgRule object and add to the ipPermission Array
+		if *permission.IpProtocol != "-1" {
+			portRange = (strconv.FormatInt(*permission.FromPort, 10) + "-" +
+				strconv.FormatInt(*permission.ToPort, 10))
+		} else {
+			portRange = "all"
+		}
+		//Create a rule object and add to the Array.
+		sgRule := SecurityGroupRule{portRange, ipRangeArray}
+		ipPermission = append(ipPermission, sgRule)
+	}
+
 	return ipPermission
 }
 
 /*
-QuerySecurityGroups will get the DescribSecurityGroupsOutput and parse it into the types that we want.
+ParseSecurityGroups will get the DescribSecurityGroupsOutput and parse it into the types that we want.
 We can then take this output and pass it through to see if we get a match on the IP we want.
 */
-/*func QuerySecurityGroups(securityGroups *ec2.DescribeSecurityGroupsOutput) (parsedGroup []SecurityGroup) {
+func ParseSecurityGroups(securityGroups *ec2.DescribeSecurityGroupsOutput) (parsedGroup []SecurityGroup) {
 	for _, sg := range securityGroups.SecurityGroups {
-		perms := QueryIPPermissions(sg.IpPermissions)
+		perms := ParseIPPermissions(sg.IpPermissions)
 
-		sGroup := SecurityGroupRule{*sg.GroupName, perms}
+		sGroup := SecurityGroup{*sg.GroupName, perms}
+
 		parsedGroup = append(parsedGroup, sGroup)
 	}
 	return parsedGroup
-} */
+}
 
 /*
 GetSecurityGroups will build a list of all SecurityGroups for parsing later.
