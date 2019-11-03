@@ -48,7 +48,10 @@ func ParseRange(ec2IpRangeArray []*ec2.IpRange) (ipRangeArray []NetRange) {
 	return ipRangeArray
 }
 
-//ParseIPPermissions
+/*
+ParseIPPermissions will take the *ec2.IpPermission object and parse it into SecurityGroupRules.
+Need to add checking on egress traffic.
+*/
 func ParseIPPermissions(perm []*ec2.IpPermission) (ipPermission []SecurityGroupRule) {
 	//Loop through every permission and build a SecurityGroupRule for it.
 	for _, permission := range perm {

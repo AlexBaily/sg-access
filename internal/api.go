@@ -9,23 +9,23 @@ import (
 var NetCache = make(map[string]int64)
 
 type SecurityGroup struct {
-	name  string
-	rules []SecurityGroupRule
+	Name  string
+	Rules []SecurityGroupRule
 }
 
 //SecurityGroupRule is the struct for the port and networks associated with that port
 //We use a reference to NetRange as we don't know how many times this range will be used
 //Should save some address space?
 type SecurityGroupRule struct {
-	ports    string
-	networks []NetRange
+	Ports    string
+	Networks []NetRange
 }
 
 //NetRange is a struct that contains information about a network
 type NetRange struct {
-	cidr         string
-	mask         string
-	networkRange int64
+	Cidr         string
+	Mask         string
+	NetworkRange int64
 }
 
 func GetIntFromIP(ipAdrr string) (i int64) {
@@ -46,7 +46,7 @@ func GetIntFromIP(ipAdrr string) (i int64) {
 To make this a function or not to make this a function, that is the question.
 */
 func CompareIntIP(ipAddr int64, subnet NetRange) bool {
-	mask, _ := strconv.ParseInt(subnet.mask, 10, 64)
+	mask, _ := strconv.ParseInt(subnet.Mask, 10, 64)
 	//Compare the normalised values to see if they match
-	return (uint64(ipAddr) >> uint32(32-mask)) == (uint64(subnet.networkRange) >> uint32((32 - mask)))
+	return (uint64(ipAddr) >> uint32(32-mask)) == (uint64(subnet.NetworkRange) >> uint32((32 - mask)))
 }
