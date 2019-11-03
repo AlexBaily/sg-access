@@ -28,18 +28,18 @@ type NetRange struct {
 	networkRange int64
 }
 
-func GetIntFromIP(cidrRange string) (i int64) {
+func GetIntFromIP(ipAdrr string) (i int64) {
 
-	cidr := strings.Split(cidrRange, ".")
+	octets := strings.Split(ipAdrr, ".")
 	//Parse each octet and convert to a base 10 int.
-	quad1, _ := strconv.ParseInt(cidr[0], 10, 64)
-	quad2, _ := strconv.ParseInt(cidr[1], 10, 64)
-	quad3, _ := strconv.ParseInt(cidr[2], 10, 64)
-	quad4, _ := strconv.ParseInt(cidr[3], 10, 64)
+	oct1, _ := strconv.ParseInt(octets[0], 10, 64)
+	oct2, _ := strconv.ParseInt(octets[1], 10, 64)
+	oct3, _ := strconv.ParseInt(octets[2], 10, 64)
+	oct4, _ := strconv.ParseInt(octets[3], 10, 64)
 
 	//Shift each octet based on where it is positioned
 	//The first octet needs to be shifted the most.
-	return int64(quad1<<24 + quad2<<16 + quad3<<8 + quad4)
+	return int64(oct1<<24 + oct2<<16 + oct3<<8 + oct4)
 }
 
 /*
