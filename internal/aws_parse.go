@@ -52,7 +52,7 @@ func ParseRange(ec2IpRangeArray []*ec2.IpRange) (ipRangeArray []NetRange) {
 ParseIPPermissions will take the *ec2.IpPermission object and parse it into SecurityGroupRules.
 Need to add checking on egress traffic.
 */
-func ParseIPPermissions(perm []*ec2.IpPermission) (ipPermission []SecurityGroupRule) {
+func ParseIPPermissions(perm []*ec2.IpPermission, trafficD string) (ipPermission []SecurityGroupRule) {
 	//Loop through every permission and build a SecurityGroupRule for it.
 	for _, permission := range perm {
 		//Loop through all of the IpRanges and build the IPRange list for the
@@ -67,7 +67,7 @@ func ParseIPPermissions(perm []*ec2.IpPermission) (ipPermission []SecurityGroupR
 			portRange = "all"
 		}
 		//Create a rule object and add to the Array.
-		sgRule := SecurityGroupRule{portRange, ipRangeArray}
+		sgRule := SecurityGroupRule{portRange, ipRangeArray, trafficD}
 		ipPermission = append(ipPermission, sgRule)
 	}
 
@@ -80,8 +80,10 @@ We can then take this output and pass it through to see if we get a match on the
 */
 func ParseSecurityGroups(securityGroups *ec2.DescribeSecurityGroupsOutput) (parsedGroup []SecurityGroup) {
 	for _, sg := range securityGroups.SecurityGroups {
-		perms := ParseIPPermissions(sg.IpPermissions)
-
+		permsIngress := ParseIPPermissions(sg.IpPermissions, "ingress")
+		permsEgress := ParseIPPermissions(sg.IpPermissions, "egress")
+		//Adding three dots to the end of permsEgress will add the whole slice together.
+		perms := append(permsIngress, permsEgress...)
 		sGroup := SecurityGroup{*sg.GroupName, perms}
 
 		parsedGroup = append(parsedGroup, sGroup)

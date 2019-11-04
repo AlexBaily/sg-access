@@ -16,7 +16,7 @@ func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroups
 			for _, rule := range parsedGroup.Rules {
 				for _, ipRange := range rule.Networks {
 					if internal.CompareIntIP(ipAddressInt, ipRange) {
-						fmt.Printf("%v\t%v\t%v/%v\n", parsedGroup.Name,
+						fmt.Printf("%v\t%v\t%v/%v\n", parsedGroup.Name, rule.TrafficDirection,
 							rule.Ports, ipRange.Cidr, ipRange.Mask)
 					}
 				}

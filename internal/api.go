@@ -17,8 +17,9 @@ type SecurityGroup struct {
 //We use a reference to NetRange as we don't know how many times this range will be used
 //Should save some address space?
 type SecurityGroupRule struct {
-	Ports    string
-	Networks []NetRange
+	Ports            string
+	Networks         []NetRange
+	TrafficDirection string
 }
 
 //NetRange is a struct that contains information about a network
