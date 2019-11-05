@@ -21,7 +21,7 @@ func NewWriter(w io.Writer) (writer *csv.Writer) {
 }
 
 //Way too many loops in this at the moment, need to split out parsing the groups etc.
-func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOutput, pretty bool := false) {
+func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOutput, pretty bool) {
 	w := NewWriter(os.Stdout)
 	for _, group := range awsGroups {
 		parsedGroups := internal.ParseSecurityGroups(group)
@@ -30,7 +30,7 @@ func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroups
 				for _, ipRange := range rule.Networks {
 					if internal.CompareIntIP(ipAddressInt, ipRange) {
 						if pretty {
-							
+
 						} else {
 							w.Write([]string{parsedGroup.Name, rule.TrafficDirection,
 								rule.Ports, ipRange.Cidr})
@@ -45,7 +45,6 @@ func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroups
 	}
 	w.Flush()
 }
-
 
 func isValidIP(ip string) bool {
 	pattern := "^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\." +
@@ -62,7 +61,7 @@ func main() {
 	flag.Parse()
 
 	if *ipAddress == "" {
-		fmt.Println("Error, missing required arguement:")
+		fmt.Println("Error, missing required argu	ment:")
 		flag.PrintDefaults()
 		os.Exit(1)
 	} else if !isValidIP(*ipAddress) {

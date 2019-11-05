@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-//Create the session var that will be used throught the package
+//Create the session var that will be used throughout the package
 var sess *session.Session
 
 //Initliase the session in init()
