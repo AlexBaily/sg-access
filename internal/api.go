@@ -8,6 +8,7 @@ import (
 //NetCache will instantiate a singleton map for storing ranges in a cache.
 var NetCache = make(map[string]int64)
 
+//SecurityGroup struct that will house all of the SecurityGroupRule objects.
 type SecurityGroup struct {
 	Name  string
 	Rules []SecurityGroupRule
@@ -29,6 +30,9 @@ type NetRange struct {
 	NetworkRange int64
 }
 
+/*
+GetIntFromIP take an IP address and converts it into a 64bit integer.
+*/
 func GetIntFromIP(ipAdrr string) (i int64) {
 
 	octets := strings.Split(ipAdrr, ".")
@@ -44,7 +48,7 @@ func GetIntFromIP(ipAdrr string) (i int64) {
 }
 
 /*
-To make this a function or not to make this a function, that is the question.
+CompareIntIP will compare the IP address to the NetRange to see if they share the same Network address.
 */
 func CompareIntIP(ipAddr int64, subnet NetRange) bool {
 	mask, _ := strconv.ParseInt(subnet.Mask, 10, 64)

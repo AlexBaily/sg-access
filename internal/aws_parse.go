@@ -28,6 +28,9 @@ func init() {
 		Region: aws.String(region)}))
 }
 
+/*
+ParseRange takes an []*ec2.IpRange parses it and convert it into a []NetRange array.
+*/
 func ParseRange(ec2IpRangeArray []*ec2.IpRange) (ipRangeArray []NetRange) {
 	//Loop through each *ec2.IpRange object to build a NetRange array.
 	for _, ipRange := range ec2IpRangeArray {

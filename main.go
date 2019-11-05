@@ -13,7 +13,7 @@ import (
 )
 
 //Get a CSV writer to write out tab delimited CSV
-func NewWriter(w io.Writer) (writer *csv.Writer) {
+func newWriter(w io.Writer) (writer *csv.Writer) {
 	writer = csv.NewWriter(w)
 	writer.Comma = '\t'
 
@@ -21,8 +21,8 @@ func NewWriter(w io.Writer) (writer *csv.Writer) {
 }
 
 //Way too many loops in this at the moment, need to split out parsing the groups etc.
-func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOutput, pretty bool) {
-	w := NewWriter(os.Stdout)
+func printMatches(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOutput, pretty bool) {
+	w := newWriter(os.Stdout)
 	for _, group := range awsGroups {
 		parsedGroups := internal.ParseSecurityGroups(group)
 		for _, parsedGroup := range parsedGroups {
@@ -58,6 +58,7 @@ func main() {
 
 	ipAddress := flag.String("ip", "", "Required - IP Address to search SGs for.")
 	printTab := flag.Bool("print-tab", false, "If flag is set then this will print the results tabulated.")
+	pretty := flag.Bool("pretty", false, "Set this flag to print out in a pretty format.")
 	flag.Parse()
 
 	if *ipAddress == "" {
@@ -74,7 +75,7 @@ func main() {
 	awsGroups := internal.GetSecurityGroups()
 	//Test to see what we're getting out of the Query.
 	if *printTab {
-		printMatchesTab(ipAddressInt, awsGroups)
+		printMatches(ipAddressInt, awsGroups, *pretty)
 	}
 
 }
