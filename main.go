@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"sg-access/internal"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -20,7 +21,7 @@ func NewWriter(w io.Writer) (writer *csv.Writer) {
 }
 
 //Way too many loops in this at the moment, need to split out parsing the groups etc.
-func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOutput) {
+func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOutput, pretty bool := false) {
 	w := NewWriter(os.Stdout)
 	for _, group := range awsGroups {
 		parsedGroups := internal.ParseSecurityGroups(group)
@@ -28,8 +29,13 @@ func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroups
 			for _, rule := range parsedGroup.Rules {
 				for _, ipRange := range rule.Networks {
 					if internal.CompareIntIP(ipAddressInt, ipRange) {
-						w.Write([]string{parsedGroup.Name, rule.TrafficDirection,
-							rule.Ports, ipRange.Cidr, ipRange.Mask})
+						if pretty {
+							
+						} else {
+							w.Write([]string{parsedGroup.Name, rule.TrafficDirection,
+								rule.Ports, ipRange.Cidr})
+						}
+
 					}
 				}
 
@@ -40,6 +46,15 @@ func printMatchesTab(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroups
 	w.Flush()
 }
 
+
+func isValidIP(ip string) bool {
+	pattern := "^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\." +
+		"(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)"
+	matched, _ := regexp.MatchString(pattern, ip)
+	return matched
+
+}
+
 func main() {
 
 	ipAddress := flag.String("ip", "", "Required - IP Address to search SGs for.")
@@ -48,6 +63,10 @@ func main() {
 
 	if *ipAddress == "" {
 		fmt.Println("Error, missing required arguement:")
+		flag.PrintDefaults()
+		os.Exit(1)
+	} else if !isValidIP(*ipAddress) {
+		fmt.Println("Error, please enter a valid IP address")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
