@@ -45,7 +45,7 @@ func ParseRange(ec2IpRangeArray []*ec2.IpRange) (ipRangeArray []NetRange) {
 		}
 		//Create a new range object which is a subnet and
 		//it's IP addresses corresponding IP in integer form.
-		nRange := NetRange{cidrIp[0], cidrIp[1], intIp}
+		nRange := NewNetRange(cidrIp[0], cidrIp[1], intIp)
 		ipRangeArray = append(ipRangeArray, nRange)
 	}
 	return ipRangeArray
@@ -127,4 +127,40 @@ func GetSecurityGroups() []*ec2.DescribeSecurityGroupsOutput {
 		}
 	}
 	return sgArray
+}
+
+/*
+GetSecurityGroups will build a list of all RouteTables for parsing later.
+We can change this function in the future to specify which region we want to use
+Or we can set it so that it uses scans all regions.
+*/
+func GetRouteTables() []*ec2.DescribeRouteTablesOutput {
+	svc := ec2.New(sess)
+
+	var rtArray []*ec2.DescribeRouteTablesOutput
+	rtInput := &ec2.DescribeRouteTablesInput{}
+
+	for {
+
+		routeTables, err := svc.DescribeRouteTables(rtInput)
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				switch aerr.Code() {
+				default:
+					fmt.Println(aerr.Error())
+				}
+			} else {
+				// Print the error, cast err to awserr.Error to get the Code and
+				// Message from an error.
+				fmt.Println(err.Error())
+			}
+		}
+		rtArray = append(rtArray, routeTables)
+
+		if routeTables.NextToken == nil {
+			break
+		}
+	}
+	return rtArray
+
 }

@@ -25,9 +25,29 @@ type SecurityGroupRule struct {
 
 //NetRange is a struct that contains information about a network
 type NetRange struct {
-	Cidr         string
-	Mask         string
-	NetworkRange int64
+	Cidr                  string
+	Mask                  string
+	NetworkRange          int64
+	RouteTableDestination string
+}
+
+type RouteTable struct {
+	RouteTableId string
+	Routes       []NetRange
+}
+
+/*
+NewNetRange will be the interface we use to create NetRange objects.
+This is because we want to reuse the NetRange type for both SG and RouteTables.
+RouteTableDestination is not require on SG so we give it a default here.
+*/
+func NewNetRange(Cidr string, Mask string, NetworkRange int64) NetRange {
+	n := NetRange{}
+	n.Cidr = Cidr
+	n.Mask = Mask
+	n.NetworkRange = NetworkRange
+	n.RouteTableDestination = ""
+	return n
 }
 
 /*
