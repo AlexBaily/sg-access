@@ -53,15 +53,6 @@ func NewNetRange(Cidr string, Mask string, NetworkRange int64) NetRange {
 	return n
 }
 
-func NewSecurityGroup(Cidr string, Mask string, NetworkRange int64) NetRange {
-	n := NetRange{}
-	n.Cidr = Cidr
-	n.Mask = Mask
-	n.NetworkRange = NetworkRange
-	n.RouteTableDestination = ""
-	return n
-}
-
 /*
 GetIntFromIP take an IP address and converts it into a 64bit integer.
 */
