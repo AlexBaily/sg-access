@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -28,6 +29,17 @@ func init() {
 		Region: aws.String(region)}))
 }
 
+//CheckCache will take a string and check if we have already worked out the int64 version of the IP.
+func CheckCache(cidrIp string) (intIp int64) {
+	if val, ok := NetCache[cidrIp]; ok {
+		intIp = val
+	} else {
+		intIp = GetIntFromIP(cidrIp)
+		NetCache[cidrIp] = intIp
+	}
+	return intIp
+}
+
 /*
 ParseRange takes an []*ec2.IpRange parses it and convert it into a []NetRange array.
 */
@@ -36,13 +48,8 @@ func ParseRange(ec2IpRangeArray []*ec2.IpRange) (ipRangeArray []NetRange) {
 	for _, ipRange := range ec2IpRangeArray {
 		cidrIp := strings.Split(*ipRange.CidrIp, "/")
 		//Check and load into our "cache"
-		var intIp int64
-		if val, ok := NetCache[cidrIp[0]]; ok {
-			intIp = val
-		} else {
-			intIp = GetIntFromIP(cidrIp[0])
-			NetCache[cidrIp[0]] = intIp
-		}
+		intIp := CheckCache(cidrIp[0])
+
 		//Create a new range object which is a subnet and
 		//it's IP addresses corresponding IP in integer form.
 		nRange := NewNetRange(cidrIp[0], cidrIp[1], intIp)
@@ -87,7 +94,7 @@ func ParseSecurityGroups(securityGroups *ec2.DescribeSecurityGroupsOutput) (pars
 		permsEgress := ParseIPPermissions(sg.IpPermissions, "egress")
 		//Adding three dots to the end of permsEgress will add the whole slice together.
 		perms := append(permsIngress, permsEgress...)
-		sGroup := SecurityGroup{*sg.GroupName, perms}
+		sGroup := SecurityGroup{*sg.GroupName, *sg.VpcId, perms}
 
 		parsedGroup = append(parsedGroup, sGroup)
 	}
@@ -163,4 +170,56 @@ func GetRouteTables() []*ec2.DescribeRouteTablesOutput {
 	}
 	return rtArray
 
+}
+
+/*
+ParsedRouteTables will take *ec2.DescribeRouteTablesOutput and output a parse RoutTable Array.
+*/
+func ParseRouteTables(routeTables *ec2.DescribeRouteTablesOutput) (parsedTable []RouteTable) {
+	for _, rt := range routeTables.RouteTables {
+
+		routes := ParseRoutes(rt.Routes)
+		routeTable := RouteTable{*rt.RouteTableId, *rt.VpcId, routes}
+
+		parsedTable = append(parsedTable, routeTable)
+	}
+	return parsedTable
+}
+
+/*
+
+ */
+func ParseRoutes(routes []*ec2.Route) (parsedRoutes []NetRange) {
+	for _, route := range routes {
+		//Find the next hop destination
+		dest := ParseRouteDestination(route)
+		//Parse the CIDR range
+		cidrIp := strings.Split(*route.DestinationCidrBlock, "/")
+		//Check and load into our "cache"
+		intIP := CheckCache(cidrIp[0])
+
+		nRange := NewNetRange(cidrIp[0], cidrIp[1], intIP)
+		nRange.RouteTableDestination = dest
+		parsedRoutes = append(parsedRoutes, nRange)
+	}
+	return parsedRoutes
+}
+
+/*
+ParseRouteDestination will look at the ec2.Route type and determine what the destination is .e.g.
+VPG, GatewayId, InstanceId, NateGatewayID
+We find this information by using reflection to get all of the fields,
+then we can exclude fields we don't need and just search for the field that contains data
+*/
+func ParseRouteDestination(route *ec2.Route) (dest string) {
+	r := reflect.ValueOf(route)
+	for i := 0; i < r.Type().NumField(); i++ {
+		//Check if the field is empty, if not make sure it's not one of the fields we don't care about.
+		if r.Field(i).String() != "" && (r.Type().Field(i).Name == "DestinationCidrBlock" ||
+			r.Type().Field(i).Name == "DestinationIpv6CidrBlock" || r.Type().Field(i).Name == "Origin" ||
+			r.Type().Field(i).Name == "State") {
+			dest = r.Field(i).String()
+		}
+	}
+	return dest
 }

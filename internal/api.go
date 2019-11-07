@@ -11,6 +11,7 @@ var NetCache = make(map[string]int64)
 //SecurityGroup struct that will house all of the SecurityGroupRule objects.
 type SecurityGroup struct {
 	Name  string
+	VpcID string
 	Rules []SecurityGroupRule
 }
 
@@ -31,8 +32,10 @@ type NetRange struct {
 	RouteTableDestination string
 }
 
+//RouteTable is a struct that contains information on an individual RouteTable
 type RouteTable struct {
-	RouteTableId string
+	RouteTableID string
+	VpcID        string
 	Routes       []NetRange
 }
 
@@ -42,6 +45,15 @@ This is because we want to reuse the NetRange type for both SG and RouteTables.
 RouteTableDestination is not require on SG so we give it a default here.
 */
 func NewNetRange(Cidr string, Mask string, NetworkRange int64) NetRange {
+	n := NetRange{}
+	n.Cidr = Cidr
+	n.Mask = Mask
+	n.NetworkRange = NetworkRange
+	n.RouteTableDestination = ""
+	return n
+}
+
+func NewSecurityGroup(Cidr string, Mask string, NetworkRange int64) NetRange {
 	n := NetRange{}
 	n.Cidr = Cidr
 	n.Mask = Mask
