@@ -214,11 +214,15 @@ then we can exclude fields we don't need and just search for the field that cont
 func ParseRouteDestination(route ec2.Route) (dest string) {
 	r := reflect.ValueOf(route)
 	for i := 0; i < r.NumField(); i++ {
-		//Check if the field is empty, if not make sure it's not one of the fields we don't care about.
-		if r.Field(i).String() != "" && (r.Type().Field(i).Name != "DestinationCidrBlock" ||
-			r.Type().Field(i).Name != "DestinationIpv6CidrBlock" || r.Type().Field(i).Name != "Origin" ||
-			r.Type().Field(i).Name != "State") {
-			dest = r.Field(i).Elem().String()
+		if r.Field(i).Kind() == reflect.Ptr {
+			//Check if the field IsValid() this will check if we have a nil pointer,
+			//if not make sure it's not one of the fields we don't care about.
+			if r.Field(i).Elem().IsValid() && (r.Type().Field(i).Name != "DestinationCidrBlock" &&
+				r.Type().Field(i).Name != "DestinationIpv6CidrBlock" && r.Type().Field(i).Name != "Origin" &&
+				r.Type().Field(i).Name != "State") {
+				dest = r.Field(i).Elem().String()
+				break
+			}
 		}
 	}
 	return dest
