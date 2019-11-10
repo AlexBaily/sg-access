@@ -192,7 +192,7 @@ func ParseRouteTables(routeTables *ec2.DescribeRouteTablesOutput) (parsedTable [
 func ParseRoutes(routes []*ec2.Route) (parsedRoutes []NetRange) {
 	for _, route := range routes {
 		//Find the next hop destination
-		dest := ParseRouteDestination(route)
+		dest := ParseRouteDestination(*route)
 		//Parse the CIDR range
 		cidrIp := strings.Split(*route.DestinationCidrBlock, "/")
 		//Check and load into our "cache"
@@ -211,14 +211,14 @@ VPG, GatewayId, InstanceId, NateGatewayID
 We find this information by using reflection to get all of the fields,
 then we can exclude fields we don't need and just search for the field that contains data
 */
-func ParseRouteDestination(route *ec2.Route) (dest string) {
+func ParseRouteDestination(route ec2.Route) (dest string) {
 	r := reflect.ValueOf(route)
-	for i := 0; i < r.Type().NumField(); i++ {
+	for i := 0; i < r.NumField(); i++ {
 		//Check if the field is empty, if not make sure it's not one of the fields we don't care about.
-		if r.Field(i).String() != "" && (r.Type().Field(i).Name == "DestinationCidrBlock" ||
-			r.Type().Field(i).Name == "DestinationIpv6CidrBlock" || r.Type().Field(i).Name == "Origin" ||
-			r.Type().Field(i).Name == "State") {
-			dest = r.Field(i).String()
+		if r.Field(i).String() != "" && (r.Type().Field(i).Name != "DestinationCidrBlock" ||
+			r.Type().Field(i).Name != "DestinationIpv6CidrBlock" || r.Type().Field(i).Name != "Origin" ||
+			r.Type().Field(i).Name != "State") {
+			dest = r.Field(i).Elem().String()
 		}
 	}
 	return dest
