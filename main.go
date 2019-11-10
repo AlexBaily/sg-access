@@ -46,6 +46,28 @@ func printMatches(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOut
 	w.Flush()
 }
 
+//This is basically the same as printMatches but for Routes.
+func printRouteMatches(ipAddressInt int64, awsRoutes []*ec2.DescribeRouteTablesOutput, pretty bool) {
+	w := newWriter(os.Stdout)
+	for _, table := range awsRoutes {
+		parsedTables := internal.ParseRouteTables(table)
+		for _, parsedTable := range parsedTables {
+			for _, route := range parsedTable.Routes {
+				if internal.CompareIntIP(ipAddressInt, route) {
+					if pretty {
+					} else {
+						w.Write([]string{parsedTable.RouteTableID, route.Cidr + "/" + route.Mask,
+							route.RouteTableDestination})
+					}
+				}
+
+			}
+		}
+
+	}
+	w.Flush()
+}
+
 func isValidIP(ip string) bool {
 	pattern := "^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\." +
 		"(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)"
@@ -58,6 +80,7 @@ func main() {
 
 	ipAddress := flag.String("ip", "", "Required - IP Address to search SGs for.")
 	printTab := flag.Bool("print-tab", false, "If flag is set then this will print the results tabulated.")
+	routes := flag.Bool("routes", false, "This will show the route tables associated to the IP address.")
 	pretty := flag.Bool("pretty", false, "Set this flag to print out in a pretty format.")
 	flag.Parse()
 
@@ -72,10 +95,17 @@ func main() {
 	}
 
 	ipAddressInt := internal.GetIntFromIP(*ipAddress)
-	awsGroups := internal.GetSecurityGroups()
-	//Test to see what we're getting out of the Query.
-	if *printTab {
-		printMatches(ipAddressInt, awsGroups, *pretty)
+
+	if *routes {
+		awsRoutes := internal.GetRouteTables()
+		if *printTab {
+			printRouteMatches(ipAddressInt, awsRoutes, *pretty)
+		}
+	} else {
+		awsGroups := internal.GetSecurityGroups()
+		if *printTab {
+			printMatches(ipAddressInt, awsGroups, *pretty)
+		}
 	}
 
 }
