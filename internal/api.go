@@ -30,6 +30,7 @@ type NetRange struct {
 	Mask                  string
 	NetworkRange          int64
 	RouteTableDestination string
+	MostSpecific          bool //Is this the most specific rule in a route table.
 }
 
 //RouteTable is a struct that contains information on an individual RouteTable
@@ -50,6 +51,7 @@ func NewNetRange(Cidr string, Mask string, NetworkRange int64) NetRange {
 	n.Mask = Mask
 	n.NetworkRange = NetworkRange
 	n.RouteTableDestination = ""
+	n.MostSpecific = false
 	return n
 }
 

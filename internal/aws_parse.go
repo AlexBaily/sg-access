@@ -214,6 +214,7 @@ then we can exclude fields we don't need and just search for the field that cont
 func ParseRouteDestination(route ec2.Route) (dest string) {
 	r := reflect.ValueOf(route)
 	for i := 0; i < r.NumField(); i++ {
+		//Check to see if the field is a pointer, this is because all ec2.Route fields are *strings.
 		if r.Field(i).Kind() == reflect.Ptr {
 			//Check if the field IsValid() this will check if we have a nil pointer,
 			//if not make sure it's not one of the fields we don't care about.
@@ -227,3 +228,5 @@ func ParseRouteDestination(route ec2.Route) (dest string) {
 	}
 	return dest
 }
+
+func MostSpecificRoute()

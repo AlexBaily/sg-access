@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"sg-access/internal"
+	"text/tabwriter"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
@@ -46,19 +47,37 @@ func printMatches(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOut
 	w.Flush()
 }
 
+func printRoutePretty(ipAddressInt int64, awsRoutes []*ec2.DescribeRouteTablesOutput) {
+	tw := new(tabwriter.Writer)
+	tw.Init(os.Stdout, 0, 0, 8, ' ', tabwriter.Debug|tabwriter.AlignRight)
+	fmt.Fprintln(tw, "VPC\tRoute Table ID\tCIDR\tDestination\t")
+	for _, table := range awsRoutes {
+		parsedTables := internal.ParseRouteTables(table)
+		for _, parsedTable := range parsedTables {
+			for _, route := range parsedTable.Routes {
+				if internal.CompareIntIP(ipAddressInt, route) {
+					fmt.Fprintln(tw, parsedTable.VpcID, "\t", parsedTable.RouteTableID, "\t",
+						route.Cidr+"/"+route.Mask, "\t", route.RouteTableDestination, "\t")
+					fmt.Fprintln(tw)
+				}
+
+			}
+		}
+
+	}
+	tw.Flush()
+}
+
 //This is basically the same as printMatches but for Routes.
-func printRouteMatches(ipAddressInt int64, awsRoutes []*ec2.DescribeRouteTablesOutput, pretty bool) {
+func printRouteMatches(ipAddressInt int64, awsRoutes []*ec2.DescribeRouteTablesOutput) {
 	w := newWriter(os.Stdout)
 	for _, table := range awsRoutes {
 		parsedTables := internal.ParseRouteTables(table)
 		for _, parsedTable := range parsedTables {
 			for _, route := range parsedTable.Routes {
 				if internal.CompareIntIP(ipAddressInt, route) {
-					if pretty {
-					} else {
-						w.Write([]string{parsedTable.RouteTableID, route.Cidr + "/" + route.Mask,
-							route.RouteTableDestination})
-					}
+					w.Write([]string{parsedTable.RouteTableID, route.Cidr + "/" + route.Mask,
+						route.RouteTableDestination})
 				}
 
 			}
@@ -99,7 +118,9 @@ func main() {
 	if *routes {
 		awsRoutes := internal.GetRouteTables()
 		if *printTab {
-			printRouteMatches(ipAddressInt, awsRoutes, *pretty)
+			printRouteMatches(ipAddressInt, awsRoutes)
+		} else if *pretty {
+			printRoutePretty(ipAddressInt, awsRoutes)
 		}
 	} else {
 		awsGroups := internal.GetSecurityGroups()
