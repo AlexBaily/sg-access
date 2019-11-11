@@ -1,4 +1,4 @@
-package internal
+package api
 
 func check(e error) {
 	if e != nil {
@@ -6,6 +6,8 @@ func check(e error) {
 	}
 }
 
+/*
 func GetSecurityGroupRules(file string) {
 
 }
+*/
