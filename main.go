@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"text/tabwriter"
 
-	"github.com/AlexBaily/sg-access/api"
+	sg "github.com/AlexBaily/sg-access/api"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
@@ -26,11 +26,11 @@ func newWriter(w io.Writer) (writer *csv.Writer) {
 func printMatches(ipAddressInt int64, awsGroups []*ec2.DescribeSecurityGroupsOutput, pretty bool) {
 	w := newWriter(os.Stdout)
 	for _, group := range awsGroups {
-		parsedGroups := api.ParseSecurityGroups(group)
+		parsedGroups := sg.ParseSecurityGroups(group)
 		for _, parsedGroup := range parsedGroups {
 			for _, rule := range parsedGroup.Rules {
 				for _, ipRange := range rule.Networks {
-					if api.CompareIntIP(ipAddressInt, ipRange) {
+					if sg.CompareIntIP(ipAddressInt, ipRange) {
 						if pretty {
 
 						} else {
@@ -53,12 +53,15 @@ func printRoutePretty(ipAddressInt int64, awsRoutes []*ec2.DescribeRouteTablesOu
 	tw.Init(os.Stdout, 0, 0, 8, ' ', tabwriter.Debug|tabwriter.AlignRight)
 	fmt.Fprintln(tw, "VPC\tRoute Table ID\tCIDR\tDestination\t")
 	for _, table := range awsRoutes {
-		parsedTables := api.ParseRouteTables(table)
+		parsedTables := sg.ParseRouteTables(table)
 		for _, parsedTable := range parsedTables {
+			//Pass in the reference to the parsedTable so we can set the most specific route.
+			sg.MostSpecificRoute(ipAddressInt, &parsedTable)
 			for _, route := range parsedTable.Routes {
-				if api.CompareIntIP(ipAddressInt, route) {
+				if sg.CompareIntIP(ipAddressInt, route) {
 					fmt.Fprintln(tw, parsedTable.VpcID, "\t", parsedTable.RouteTableID, "\t",
-						route.Cidr+"/"+route.Mask, "\t", route.RouteTableDestination, "\t")
+						route.Cidr+"/"+route.Mask, "\t", route.RouteTableDestination, "\t",
+						route.MostSpecific, "\t")
 					fmt.Fprintln(tw)
 				}
 
@@ -73,10 +76,10 @@ func printRoutePretty(ipAddressInt int64, awsRoutes []*ec2.DescribeRouteTablesOu
 func printRouteMatches(ipAddressInt int64, awsRoutes []*ec2.DescribeRouteTablesOutput) {
 	w := newWriter(os.Stdout)
 	for _, table := range awsRoutes {
-		parsedTables := api.ParseRouteTables(table)
+		parsedTables := sg.ParseRouteTables(table)
 		for _, parsedTable := range parsedTables {
 			for _, route := range parsedTable.Routes {
-				if api.CompareIntIP(ipAddressInt, route) {
+				if sg.CompareIntIP(ipAddressInt, route) {
 					w.Write([]string{parsedTable.RouteTableID, route.Cidr + "/" + route.Mask,
 						route.RouteTableDestination})
 				}
@@ -114,17 +117,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	ipAddressInt := api.GetIntFromIP(*ipAddress)
+	ipAddressInt := sg.GetIntFromIP(*ipAddress)
 
 	if *routes {
-		awsRoutes := api.GetRouteTables()
+		awsRoutes := sg.GetRouteTables()
 		if *printTab {
 			printRouteMatches(ipAddressInt, awsRoutes)
 		} else if *pretty {
 			printRoutePretty(ipAddressInt, awsRoutes)
 		}
 	} else {
-		awsGroups := api.GetSecurityGroups()
+		awsGroups := sg.GetSecurityGroups()
 		if *printTab {
 			printMatches(ipAddressInt, awsGroups, *pretty)
 		}

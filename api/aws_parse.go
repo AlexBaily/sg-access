@@ -230,5 +230,35 @@ func ParseRouteDestination(route ec2.Route) (dest string) {
 }
 
 /*
-func MostSpecificRoute()
+MostSpecificRoute will take an IP address and a dereferenced RouteTable
+It will then see which one of the routes in the table is the most specific match.
 */
+func MostSpecificRoute(ipAddressInt int64, table *RouteTable) {
+	//Start off with declaring some variables to be used in the loops.
+	var mostSpecific *NetRange
+	var msInt int //msInt is [mostSpecific] Mask, declared here as we need to use in loop.
+	for i := range table.Routes {
+		if CompareIntIP(ipAddressInt, table.Routes[i]) {
+			//This is the current Routes (i) Mask as int
+			rmInt, _ := strconv.Atoi(table.Routes[i].Mask)
+			//If mostSpecific is nil then this is the first match in the loop and we need
+			//to set an initial value.
+			if mostSpecific == nil {
+				//This syntax is required to get the reference of the Route in our
+				//[]NetRange in *RouteTable else we will not pass the reference.
+				mostSpecific = (&table.Routes[i])
+				mostSpecific.MostSpecific = true
+				msInt, _ = strconv.Atoi(mostSpecific.Mask)
+				//If the new Route Mask is more larger (more specific) than the current
+				//mostSpecific then set it to the new one, first we need to clear the current
+				//mostSpecific.MostSpecific to false as it is no longer the most specific.
+			} else if rmInt > msInt {
+				mostSpecific.MostSpecific = false
+				mostSpecific = (&table.Routes[i])
+				mostSpecific.MostSpecific = true
+				msInt, _ = strconv.Atoi(mostSpecific.Mask)
+			}
+		}
+	}
+
+}
