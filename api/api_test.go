@@ -26,7 +26,7 @@ if it is not.
 */
 func TestIPCompare(t *testing.T) {
 	ip1 := GetIntFromIP("192.168.0.2")
-	n := NetRange{"192.168.0.0", "16", 3232235520}
+	n := NewNetRange("192.168.0.0", "16", 3232235520)
 	compTrue := CompareIntIP(ip1, n)
 	if compTrue != true {
 		t.Errorf("CompareIntIP(\"192.168.0.2\", n) = %v; want true",
