@@ -191,16 +191,19 @@ func ParseRouteTables(routeTables *ec2.DescribeRouteTablesOutput) (parsedTable [
  */
 func ParseRoutes(routes []*ec2.Route) (parsedRoutes []NetRange) {
 	for _, route := range routes {
-		//Find the next hop destination
-		dest := ParseRouteDestination(*route)
-		//Parse the CIDR range
-		cidrIp := strings.Split(*route.DestinationCidrBlock, "/")
-		//Check and load into our "cache"
-		intIP := CheckCache(cidrIp[0])
+		if route.DestinationCidrBlock != nil {
+			//Find the next hop destination
+			dest := ParseRouteDestination(*route)
+			//Parse the CIDR range
 
-		nRange := NewNetRange(cidrIp[0], cidrIp[1], intIP)
-		nRange.RouteTableDestination = dest
-		parsedRoutes = append(parsedRoutes, nRange)
+			cidrIp := strings.Split(*route.DestinationCidrBlock, "/")
+			//Check and load into our "cache"
+			intIP := CheckCache(cidrIp[0])
+
+			nRange := NewNetRange(cidrIp[0], cidrIp[1], intIP)
+			nRange.RouteTableDestination = dest
+			parsedRoutes = append(parsedRoutes, nRange)
+		}
 	}
 	return parsedRoutes
 }
