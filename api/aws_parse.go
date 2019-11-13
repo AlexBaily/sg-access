@@ -30,14 +30,14 @@ func init() {
 }
 
 //CheckCache will take a string and check if we have already worked out the int64 version of the IP.
-func CheckCache(cidrIp string) (intIp int64) {
-	if val, ok := NetCache[cidrIp]; ok {
-		intIp = val
+func CheckCache(cidrIP string) (intIP int64) {
+	if val, ok := NetCache[cidrIP]; ok {
+		intIP = val
 	} else {
-		intIp = GetIntFromIP(cidrIp)
-		NetCache[cidrIp] = intIp
+		intIP = GetIntFromIP(cidrIP)
+		NetCache[cidrIP] = intIP
 	}
-	return intIp
+	return intIP
 }
 
 /*
@@ -46,13 +46,13 @@ ParseRange takes an []*ec2.IpRange parses it and convert it into a []NetRange ar
 func ParseRange(ec2IpRangeArray []*ec2.IpRange) (ipRangeArray []NetRange) {
 	//Loop through each *ec2.IpRange object to build a NetRange array.
 	for _, ipRange := range ec2IpRangeArray {
-		cidrIp := strings.Split(*ipRange.CidrIp, "/")
+		cidrIP := strings.Split(*ipRange.CidrIp, "/")
 		//Check and load into our "cache"
-		intIp := CheckCache(cidrIp[0])
+		intIP := CheckCache(cidrIP[0])
 
 		//Create a new range object which is a subnet and
 		//it's IP addresses corresponding IP in integer form.
-		nRange := NewNetRange(cidrIp[0], cidrIp[1], intIp)
+		nRange := NewNetRange(cidrIP[0], cidrIP[1], intIP)
 		ipRangeArray = append(ipRangeArray, nRange)
 	}
 	return ipRangeArray
@@ -137,7 +137,7 @@ func GetSecurityGroups() []*ec2.DescribeSecurityGroupsOutput {
 }
 
 /*
-GetSecurityGroups will build a list of all RouteTables for parsing later.
+GetRouteTables will build a list of all RouteTables for parsing later.
 We can change this function in the future to specify which region we want to use
 Or we can set it so that it uses scans all regions.
 */
@@ -173,7 +173,7 @@ func GetRouteTables() []*ec2.DescribeRouteTablesOutput {
 }
 
 /*
-ParsedRouteTables will take *ec2.DescribeRouteTablesOutput and output a parse RoutTable Array.
+ParseRouteTables will take *ec2.DescribeRouteTablesOutput and output a parse RoutTable Array.
 */
 func ParseRouteTables(routeTables *ec2.DescribeRouteTablesOutput) (parsedTable []RouteTable) {
 	for _, rt := range routeTables.RouteTables {
@@ -187,8 +187,8 @@ func ParseRouteTables(routeTables *ec2.DescribeRouteTablesOutput) (parsedTable [
 }
 
 /*
-
- */
+ParseRoutes will take []*ec2.Route and convert it to a []NetRange
+*/
 func ParseRoutes(routes []*ec2.Route) (parsedRoutes []NetRange) {
 	for _, route := range routes {
 		if route.DestinationCidrBlock != nil {
@@ -196,12 +196,15 @@ func ParseRoutes(routes []*ec2.Route) (parsedRoutes []NetRange) {
 			dest := ParseRouteDestination(*route)
 			//Parse the CIDR range
 
-			cidrIp := strings.Split(*route.DestinationCidrBlock, "/")
+			cidrIP := strings.Split(*route.DestinationCidrBlock, "/")
 			//Check and load into our "cache"
-			intIP := CheckCache(cidrIp[0])
+			intIP := CheckCache(cidrIP[0])
 
-			nRange := NewNetRange(cidrIp[0], cidrIp[1], intIP)
+			nRange := NewNetRange(cidrIP[0], cidrIP[1], intIP)
 			nRange.RouteTableDestination = dest
+			if *route.Origin == "EnableVgwRoutePropagation" {
+				nRange.Propagated = true
+			}
 			parsedRoutes = append(parsedRoutes, nRange)
 		}
 	}
@@ -260,8 +263,43 @@ func MostSpecificRoute(ipAddressInt int64, table *RouteTable) {
 				mostSpecific = (&table.Routes[i])
 				mostSpecific.MostSpecific = true
 				msInt, _ = strconv.Atoi(mostSpecific.Mask)
+			} else if rmInt == msInt {
+				//If the routes have an equal prefix then we need to figure out the tiebreaker.
+				if isMoreSpecific(*mostSpecific, table.Routes[i]) {
+					mostSpecific.MostSpecific = false
+					mostSpecific = (&table.Routes[i])
+					mostSpecific.MostSpecific = true
+					msInt, _ = strconv.Atoi(mostSpecific.Mask)
+				}
 			}
 		}
 	}
 
+}
+
+/*
+isMoreSpecific will check the current mostSpecific NetRange and compare
+it against the new route, it will first check route prepagation and then
+the destination to see where it is going.
+We will eventually want to see if we can tell if it's from BGP or a static VPN route.
+BGP VPN routes go first.
+*/
+func isMoreSpecific(currMS NetRange, msToCompare NetRange) bool {
+	if currMS.Propagated && !msToCompare.Propagated {
+		return false
+	} else if !currMS.Propagated && msToCompare.Propagated {
+		return true
+	} else {
+		//If they are both not propagated then we will check to see where they are going.
+		//Local routes get precendence.
+		//https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-tables-priority
+		if currMS.RouteTableDestination[:3] == "loc" {
+			return false
+		} else if msToCompare.RouteTableDestination[:3] == "loc" {
+
+			return true
+		} else {
+			return false
+		}
+	}
 }
