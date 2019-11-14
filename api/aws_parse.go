@@ -295,10 +295,10 @@ func isMoreSpecific(currMS NetRange, msToCompare NetRange) bool {
 	//There is no way to where the route came from when it's a VGW.
 	//https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-tables-priority
 	if currMS.Propagated && !msToCompare.Propagated {
-		return false
+		return true
 	}
 	//!currMS.Propagated && msToCompare.Propagated should be the final comparison
 	//There will not be anymore comparisons after this due to the aformentioned issues with VGW.
-	return true
+	return false
 
 }
