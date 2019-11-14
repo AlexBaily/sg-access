@@ -259,20 +259,11 @@ func MostSpecificRoute(ipAddressInt int64, table *RouteTable) {
 				//the the current most specific does not point to the local route.
 				//mostSpecific then set it to the new one, first we need to clear the current
 				//mostSpecific.MostSpecific to false as it is no longer the most specific.
-			} else if (rmInt > msInt && mostSpecific.RouteTableDestination[:3] != "loc") ||
-				table.Routes[i].RouteTableDestination[:3] == "loc" {
+			} else if isMoreSpecific(rmInt, msInt, *mostSpecific, table.Routes[i]) {
 				mostSpecific.MostSpecific = false
 				mostSpecific = (&table.Routes[i])
 				mostSpecific.MostSpecific = true
 				msInt, _ = strconv.Atoi(mostSpecific.Mask)
-			} else if rmInt == msInt {
-				//If the routes have an equal prefix then we need to figure out the tiebreaker.
-				if isMoreSpecific(*mostSpecific, table.Routes[i]) {
-					mostSpecific.MostSpecific = false
-					mostSpecific = (&table.Routes[i])
-					mostSpecific.MostSpecific = true
-					msInt, _ = strconv.Atoi(mostSpecific.Mask)
-				}
 			}
 		}
 	}
@@ -288,17 +279,22 @@ BGP VPN routes go first.
 This cannot be done at the moment but we can split this function out for future use if
 AWS ever gives us detail on which routes come from which VGW device.
 */
-func isMoreSpecific(currMS NetRange, msToCompare NetRange) bool {
+func isMoreSpecific(rmInt int, msInt int, currMS NetRange, msToCompare NetRange) bool {
 	//If they are both not propagated then we will check to see where they are going.
 	//Local routes get precendence, then static routes and then propagated routes.
 	//Of the propagated routes it goes DX BGP -> VPN BGP -> VPN Static.
 	//There is no way to where the route came from when it's a VGW.
 	//https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-tables-priority
-	if currMS.Propagated && !msToCompare.Propagated {
-		return false
+	if (rmInt > msInt && currMS.RouteTableDestination[:3] != "loc") ||
+		msToCompare.RouteTableDestination[:3] == "loc" {
+		return true
+	} else if rmInt == msInt {
+		if currMS.Propagated && !msToCompare.Propagated {
+			return true
+		}
 	}
 	//!currMS.Propagated && msToCompare.Propagated should be the final comparison
 	//There will not be anymore comparisons after this due to the aformentioned issues with VGW.
-	return true
+	return false
 
 }
