@@ -255,10 +255,12 @@ func MostSpecificRoute(ipAddressInt int64, table *RouteTable) {
 				mostSpecific = (&table.Routes[i])
 				mostSpecific.MostSpecific = true
 				msInt, _ = strconv.Atoi(mostSpecific.Mask)
-				//If the new Route Mask is more larger (more specific) than the current
+				//If the new Route Mask is more larger (more specific) than the current AND
+				//the the current most specific does not point to the local route.
 				//mostSpecific then set it to the new one, first we need to clear the current
 				//mostSpecific.MostSpecific to false as it is no longer the most specific.
-			} else if rmInt > msInt {
+			} else if (rmInt > msInt && mostSpecific.RouteTableDestination[:3] != "loc") ||
+				table.Routes[i].RouteTableDestination[:3] == "loc" {
 				mostSpecific.MostSpecific = false
 				mostSpecific = (&table.Routes[i])
 				mostSpecific.MostSpecific = true
