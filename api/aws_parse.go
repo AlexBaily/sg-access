@@ -285,21 +285,20 @@ We will eventually want to see if we can tell if it's from BGP or a static VPN r
 BGP VPN routes go first.
 */
 func isMoreSpecific(currMS NetRange, msToCompare NetRange) bool {
-	if currMS.Propagated && !msToCompare.Propagated {
+	//If they are both not propagated then we will check to see where they are going.
+	//Local routes get precendence, then static routes and then propagated routes.
+	//Of the propagated routes it goes DX BGP -> VPN BGP -> VPN Static.
+	//There is no way to where the route came from when it's a VGW.
+	//https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-tables-priority
+	if currMS.RouteTableDestination[:3] == "loc" {
 		return false
-	} else if !currMS.Propagated && msToCompare.Propagated {
+	} else if msToCompare.RouteTableDestination[:3] == "loc" {
 		return true
+	} else if currMS.Propagated && !msToCompare.Propagated {
+		return false
 	} else {
-		//If they are both not propagated then we will check to see where they are going.
-		//Local routes get precendence.
-		//https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-tables-priority
-		if currMS.RouteTableDestination[:3] == "loc" {
-			return false
-		} else if msToCompare.RouteTableDestination[:3] == "loc" {
-
-			return true
-		} else {
-			return false
-		}
+		//!currMS.Propagated && msToCompare.Propagated should be the final comparison
+		//There will not be anymore comparisons after this due to the aformentioned issues with VGW.
+		return true
 	}
 }
