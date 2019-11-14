@@ -255,10 +255,12 @@ func MostSpecificRoute(ipAddressInt int64, table *RouteTable) {
 				mostSpecific = (&table.Routes[i])
 				mostSpecific.MostSpecific = true
 				msInt, _ = strconv.Atoi(mostSpecific.Mask)
-				//If the new Route Mask is more larger (more specific) than the current
+				//If the new Route Mask is more larger (more specific) than the current AND
+				//the the current most specific does not point to the local route.
 				//mostSpecific then set it to the new one, first we need to clear the current
 				//mostSpecific.MostSpecific to false as it is no longer the most specific.
-			} else if rmInt > msInt {
+			} else if (rmInt > msInt && mostSpecific.RouteTableDestination[:3] != "loc") ||
+				table.Routes[i].RouteTableDestination[:3] == "loc" {
 				mostSpecific.MostSpecific = false
 				mostSpecific = (&table.Routes[i])
 				mostSpecific.MostSpecific = true
@@ -283,6 +285,8 @@ it against the new route, it will first check route prepagation and then
 the destination to see where it is going.
 We will eventually want to see if we can tell if it's from BGP or a static VPN route.
 BGP VPN routes go first.
+This cannot be done at the moment but we can split this function out for future use if
+AWS ever gives us detail on which routes come from which VGW device.
 */
 func isMoreSpecific(currMS NetRange, msToCompare NetRange) bool {
 	//If they are both not propagated then we will check to see where they are going.
@@ -290,15 +294,11 @@ func isMoreSpecific(currMS NetRange, msToCompare NetRange) bool {
 	//Of the propagated routes it goes DX BGP -> VPN BGP -> VPN Static.
 	//There is no way to where the route came from when it's a VGW.
 	//https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-tables-priority
-	if currMS.RouteTableDestination[:3] == "loc" {
+	if currMS.Propagated && !msToCompare.Propagated {
 		return false
-	} else if msToCompare.RouteTableDestination[:3] == "loc" {
-		return true
-	} else if currMS.Propagated && !msToCompare.Propagated {
-		return false
-	} else {
-		//!currMS.Propagated && msToCompare.Propagated should be the final comparison
-		//There will not be anymore comparisons after this due to the aformentioned issues with VGW.
-		return true
 	}
+	//!currMS.Propagated && msToCompare.Propagated should be the final comparison
+	//There will not be anymore comparisons after this due to the aformentioned issues with VGW.
+	return true
+
 }
