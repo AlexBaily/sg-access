@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 	"text/tabwriter"
 
 	sg "github.com/AlexBaily/sg-access/api"
@@ -99,38 +100,50 @@ func isValidIP(ip string) bool {
 
 }
 
+//Parse IPs will parse multiple IPs based off of the IP addresses given in the command line args.
+func parseIP(ipAddresses *string, routes *bool, printTab *bool, pretty *bool) {
+	//Parse multiple IPs based on
+	for _, ipAddress := range strings.Split(*ipAddresses, ",") {
+		if !isValidIP(ipAddress) {
+			fmt.Println("Error, please enter a valid IP address")
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+		//Get the integer of the IP address.
+		ipAddressInt := sg.GetIntFromIP(ipAddress)
+		//Check if are going to parse routes rather than SG.
+		if *routes {
+			awsRoutes := sg.GetRouteTables()
+			if *printTab {
+				printRouteMatches(ipAddressInt, awsRoutes)
+			} else if *pretty {
+				printRoutePretty(ipAddressInt, awsRoutes)
+			}
+		} else {
+			awsGroups := sg.GetSecurityGroups()
+			if *printTab {
+				printMatches(ipAddressInt, awsGroups, *pretty)
+			}
+		}
+	}
+}
+
 func main() {
 
-	ipAddress := flag.String("ip", "", "Required - IP Address to search SGs for.")
+	//Parse all of the flags.
+	ipAddresses := flag.String("ip", "", "Required - IP Address to search SGs for.")
 	printTab := flag.Bool("print-tab", false, "If flag is set then this will print the results tabulated.")
 	routes := flag.Bool("routes", false, "This will show the route tables associated to the IP address.")
 	pretty := flag.Bool("pretty", false, "Set this flag to print out in a pretty format.")
 	flag.Parse()
 
-	if *ipAddress == "" {
+	//Check if we don't have an IP or if it's invalid.
+	if *ipAddresses == "" {
 		fmt.Println("Error, missing required argu	ment:")
 		flag.PrintDefaults()
 		os.Exit(1)
-	} else if !isValidIP(*ipAddress) {
-		fmt.Println("Error, please enter a valid IP address")
-		flag.PrintDefaults()
-		os.Exit(1)
 	}
 
-	ipAddressInt := sg.GetIntFromIP(*ipAddress)
-
-	if *routes {
-		awsRoutes := sg.GetRouteTables()
-		if *printTab {
-			printRouteMatches(ipAddressInt, awsRoutes)
-		} else if *pretty {
-			printRoutePretty(ipAddressInt, awsRoutes)
-		}
-	} else {
-		awsGroups := sg.GetSecurityGroups()
-		if *printTab {
-			printMatches(ipAddressInt, awsGroups, *pretty)
-		}
-	}
+	parseIP(ipAddresses, routes, printTab, pretty)
 
 }
