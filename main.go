@@ -101,9 +101,10 @@ func isValidIP(ip string) bool {
 }
 
 //Parse IPs will parse multiple IPs based off of the IP addresses given in the command line args.
-func parseIP(ipAddresses *string, routes *bool, printTab *bool, pretty *bool) {
+func parseIPs(ipAddresses *string, routes *bool, printTab *bool, pretty *bool) {
 	//Parse multiple IPs based on
 	for _, ipAddress := range strings.Split(*ipAddresses, ",") {
+		ipAddress = strings.TrimSpace(ipAddress)
 		if !isValidIP(ipAddress) {
 			fmt.Println("Error, please enter a valid IP address")
 			flag.PrintDefaults()
@@ -144,6 +145,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	parseIP(ipAddresses, routes, printTab, pretty)
+	parseIPs(ipAddresses, routes, printTab, pretty)
 
 }
