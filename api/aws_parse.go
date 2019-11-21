@@ -242,11 +242,11 @@ It will then see which one of the routes in the table is the most specific match
 func MostSpecificRoute(ipAddressInt int64, table *RouteTable) {
 	//Start off with declaring some variables to be used in the loops.
 	var mostSpecific *NetRange
-	var msInt int //msInt is [mostSpecific] Mask, declared here as we need to use in loop.
+	var msMaskInt int
 	for i := range table.Routes {
 		if CompareIntIP(ipAddressInt, table.Routes[i]) {
 			//This is the current Routes (i) Mask as int
-			rmInt, _ := strconv.Atoi(table.Routes[i].Mask)
+			routeMaskInt, _ := strconv.Atoi(table.Routes[i].Mask)
 			//If mostSpecific is nil then this is the first match in the loop and we need
 			//to set an initial value.
 			if mostSpecific == nil {
@@ -254,16 +254,16 @@ func MostSpecificRoute(ipAddressInt int64, table *RouteTable) {
 				//[]NetRange in *RouteTable else we will not pass the reference.
 				mostSpecific = (&table.Routes[i])
 				mostSpecific.MostSpecific = true
-				msInt, _ = strconv.Atoi(mostSpecific.Mask)
+				msMaskInt, _ = strconv.Atoi(mostSpecific.Mask)
 				//If the new Route Mask is more larger (more specific) than the current AND
 				//the the current most specific does not point to the local route.
 				//mostSpecific then set it to the new one, first we need to clear the current
 				//mostSpecific.MostSpecific to false as it is no longer the most specific.
-			} else if isMoreSpecific(rmInt, msInt, *mostSpecific, table.Routes[i]) {
+			} else if isMoreSpecific(routeMaskInt, msMaskInt, *mostSpecific, table.Routes[i]) {
 				mostSpecific.MostSpecific = false
 				mostSpecific = (&table.Routes[i])
 				mostSpecific.MostSpecific = true
-				msInt, _ = strconv.Atoi(mostSpecific.Mask)
+				msMaskInt, _ = strconv.Atoi(mostSpecific.Mask)
 			}
 		}
 	}
@@ -279,16 +279,16 @@ BGP VPN routes go first.
 This cannot be done at the moment but we can split this function out for future use if
 AWS ever gives us detail on which routes come from which VGW device.
 */
-func isMoreSpecific(rmInt int, msInt int, currMS NetRange, msToCompare NetRange) bool {
+func isMoreSpecific(routeMaskInt int, msMaskInt int, currMS NetRange, msToCompare NetRange) bool {
 	//If they are both not propagated then we will check to see where they are going.
 	//Local routes get precendence, then static routes and then propagated routes.
 	//Of the propagated routes it goes DX BGP -> VPN BGP -> VPN Static.
 	//There is no way to where the route came from when it's a VGW.
 	//https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-tables-priority
-	if (rmInt > msInt && currMS.RouteTableDestination[:3] != "loc") ||
+	if (routeMaskInt > msMaskInt && currMS.RouteTableDestination[:3] != "loc") ||
 		msToCompare.RouteTableDestination[:3] == "loc" {
 		return true
-	} else if rmInt == msInt {
+	} else if routeMaskInt == msMaskInt {
 		if currMS.Propagated && !msToCompare.Propagated {
 			return true
 		}
