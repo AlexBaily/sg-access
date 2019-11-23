@@ -10,35 +10,35 @@ var NetCache = make(map[string]int64)
 
 //SecurityGroup struct that will house all of the SecurityGroupRule objects.
 type SecurityGroup struct {
-	Name  string
-	VpcID string
-	Rules []SecurityGroupRule
+	Name  string              `json:"name"`
+	VpcID string              `json:"vpcId"`
+	Rules []SecurityGroupRule `json:"rules"`
 }
 
 //SecurityGroupRule is the struct for the port and networks associated with that port
 //We use a reference to NetRange as we don't know how many times this range will be used
 //Should save some address space?
 type SecurityGroupRule struct {
-	Ports            string
-	Networks         []NetRange
-	TrafficDirection string
+	Ports            string     `json:"ports"`
+	Networks         []NetRange `json:"subnets"`
+	TrafficDirection string     `json:"direction"`
 }
 
 //NetRange is a struct that contains information about a network
 type NetRange struct {
-	Cidr                  string
-	Mask                  string
-	NetworkRange          int64
-	RouteTableDestination string
-	MostSpecific          bool //Is this the most specific rule in a route table.
-	Propagated            bool //Was this range propagated from a vgw?
+	Cidr                  string `json:"cidr"`
+	Mask                  string `json:"mask"`
+	NetworkRange          int64  `json:"cidrInt"`
+	RouteTableDestination string `json:"route-test,omitempty"`
+	MostSpecific          bool   `json:"mostSpecific,omitempty"`
+	Propagated            bool   `json:"propagated,omitempty"`
 }
 
 //RouteTable is a struct that contains information on an individual RouteTable
 type RouteTable struct {
-	RouteTableID string
-	VpcID        string
-	Routes       []NetRange
+	RouteTableID string     `json:"ID"`
+	VpcID        string     `json:"vpcId"`
+	Routes       []NetRange `json:"routes"`
 }
 
 /*
